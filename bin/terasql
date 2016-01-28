@@ -1,0 +1,50 @@
+#!/usr/bin/env ruby --dev
+
+require 'terastream'
+require 'optparse'
+
+cli_options = Terastream::CLI.new
+
+optparse = OptionParser.new do |opts|
+  opts.on
+  opts.on('-h', '--hostname hostname', 'Hostname')    { |val| cli_options.hostname  = val      }
+  opts.on('-u', '--username username', 'Username')    { |val| cli_options.username  = val      }
+  opts.on('-p', '--password password', 'Password')    { |val| cli_options.password  = val      }
+  opts.on('-c', '--config config', 'Config')          { |val| cli_options.config    = val      }
+  opts.on('-f', '--file file', 'File')                { |val| cli_options.file      = val      }
+  opts.on('-o', '--output output ', 'Output')         { |val| cli_options.output    = val      }
+  opts.on('-q', '--query query', 'Query')             { |val| cli_options.query     = val      }
+  opts.on('-s', '--formatter formatter', 'Formatter') { |val| cli_options.formatter = val      }
+  opts.on('-t', '--timeout timeout', 'Timeout')       { |val| cli_options.timeout   = val.to_i }
+end
+
+optparse.parse!
+
+if cli_options.missing_hostname?
+  $stdout.write "Missing hostname, please supply a hostname with -h or --hostname\n"
+  return
+end
+
+if cli_options.missing_query?
+  $stdout.
+    write "Missing SQL, please supply a query with -q or --query or provide a file containing a query with -f or --file\n"
+  return
+end
+
+client = Terastream.new do |connection|
+  connection.username  = cli_options.username
+  connection.password  = cli_options.password
+  connection.hostname  = cli_options.hostname
+  connection.timeout   = cli_options.timeout
+  connection.formatter = cli_options.formatter_object
+  connection.output    = cli_options.output_object
+end
+
+result_set = client.query(cli_options.query_string)
+
+if results = result_set.results
+  results.each do |result|
+    $stdout.write result
+    $stdout.write "\n"
+  end
+end
